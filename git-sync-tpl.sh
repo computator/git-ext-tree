@@ -92,7 +92,7 @@ main () {
 	if [ -z "$last_import_commit" ]; then
 		echo "fatal: '$head_ref' has no history in common with '$tpl_ref'" >&2
 		exit 1
-	elif [ "$last_import_commit" = "$(git rev-parse "$tpl_ref")" ]; then
+	elif [ "$(git rev-parse "$last_import_commit^{tree}")" = "$(git rev-parse "$tpl_ref^{tree}")" ]; then
 		echo "'$head_ref' already up to date with '$tpl_ref', no new changes to synchronize"
 		exit
 	fi

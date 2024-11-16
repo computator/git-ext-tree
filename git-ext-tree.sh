@@ -1,7 +1,20 @@
 #!/bin/bash
-set -eu
+set -e
 
-self=$(basename "$0") && self=${self#git-}
+self=$(basename -- "$0" | sed 's/-/ /')
+! test -t 1; is_tty=${?#0}
+
+OPTIONS_SPEC="\
+${self} <ref>
+
+${self} creates point-in-time tree imports from an external tree or repository
+
+Typical usage:
+git fetch <repository> <ref>
+${self} FETCH_HEAD
+--
+h,help show the help
+"
 
 first_commit_with_ancestor_tree () {
 	local ref="$1"
@@ -38,17 +51,6 @@ edit_msg () {
 	)
 }
 
-verify_clean () {
-	git diff --cached --quiet HEAD || {
-		echo "fatal: uncomitted changes"
-		exit 1
-	}
-	! git rev-parse --verify --quiet MERGE_HEAD > /dev/null || {
-		echo "fatal: merge in progress"
-		exit 1
-	}
-}
-
 confirm () {
 	local key
 	read -p "${1:-"Continue?"} (y/N) " key
@@ -56,28 +58,18 @@ confirm () {
 }
 
 main () {
-	! test -t 1; is_tty=${?#0}
-
 	#----- parse params -----
 
-	test $# -ne 1 && set -- -h
-	eval "$(git rev-parse --parseopt -- "$@" <<-EOF || echo exit $?
-		git ${self} <ref>
+	SUBDIRECTORY_OK=1
+	. "$(git --exec-path)/git-sh-setup"
+	require_work_tree_exists
 
-		git ${self} creates point-in-time tree imports from an external tree or repository
-
-		Typical usage:
-		git fetch <repository> <ref>
-		git ${self} FETCH_HEAD
-		--
-		h,help show the help
-	EOF
-	)"
-	test "$1" = "--" && shift
+	test "$1" = "--" && shift || usage
+	test $# -eq 1 || usage
 
 	#----- parse refs -----
 
-	verify_clean
+	require_clean_work_tree "synchronize"
 
 	head_ref=$(parse_ref HEAD)
 	tpl_ref=$(git rev-parse --verify --symbolic --quiet "$1^{commit}") || {

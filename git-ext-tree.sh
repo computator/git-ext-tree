@@ -64,7 +64,7 @@ main () {
 	eval "$(git rev-parse --parseopt -- "$@" <<-EOF || echo exit $?
 		git ${self} <ref>
 
-		git ${self} synchronizes the repository with new changes from a template repository
+		git ${self} creates point-in-time tree imports from an external tree or repository
 
 		Typical usage:
 		git fetch <repository> <ref>

@@ -2,7 +2,6 @@
 set -e
 
 self=$(basename -- "$0" | sed 's/-/ /')
-! test -t 1; is_tty=${?#0}
 
 OPTIONS_SPEC="\
 ${self} <ref>
@@ -72,24 +71,21 @@ main () {
 	require_clean_work_tree "synchronize"
 
 	head_ref=$(parse_ref HEAD)
-	tpl_ref=$(git rev-parse --verify --symbolic --quiet "$1^{commit}") || {
-		echo "fatal: bad revision '$1'" >&2
-		exit 1
-	}
+	tpl_ref=$(git rev-parse --verify --symbolic --quiet "$1^{commit}") || die "fatal: bad revision '$1'"
 	tpl_ref=${tpl_ref%'^{commit}'}
 
 	#----- find sync point -----
 
 	last_import_commit=$(first_commit_with_ancestor_tree $tpl_ref)
 	if [ -z "$last_import_commit" ]; then
-		echo "fatal: '$head_ref' has no history in common with '$tpl_ref'" >&2
-		exit 1
+		die "fatal: '$head_ref' has no history in common with '$tpl_ref'"
 	elif [ "$(git rev-parse "$last_import_commit^{tree}")" = "$(git rev-parse "$tpl_ref^{tree}")" ]; then
-		echo "'$head_ref' already up to date with '$tpl_ref', no new changes to synchronize"
+		say "'$head_ref' already up to date with '$tpl_ref', no new changes to synchronize"
 		exit
 	fi
-	echo "Last synchronization commit to '$head_ref':  $(
-		git log --oneline --decorate ${is_tty:+"--color"} -n 1 $last_import_commit
+	{ color_arg=$(test -t 3 && echo --color || true); } 3>&1
+	say "Last synchronization commit to '$head_ref':  $(
+		git log --oneline --decorate $color_arg -n 1 $last_import_commit
 	)"
 
 	#----- create commit with parent $last_import_commit and tree from $tpl_ref -----
@@ -107,33 +103,27 @@ main () {
 			)" \
 			3>&1 >&4
 	); } 4>&1
-	[ -n "$c_msg" ] || {
-		echo "Aborting commit due to empty commit message."
-		exit 1
-	}
+	[ -n "$c_msg" ] || die "Aborting commit due to empty commit message."
 
 	new_commit=$(git commit-tree -p $last_import_commit -m "$c_msg" "${tpl_ref}^{tree}")
-	if [ $? -gt 0 ]; then
-		echo "fatal: failed to create synchronization commit${new_commit:+": $new_commit"}"
-		exit 1
-	fi
-	echo "Successfully imported changes as new commit $new_commit"
+	[ $? -eq 0 ] || die "fatal: failed to create synchronization commit${new_commit:+": $new_commit"}"
+	say "Successfully imported changes as new commit $new_commit"
 
 	#----- merge created commit into HEAD -----
 
 	confirm "Merge synchronization commit $(git rev-parse --short $new_commit) into '$(parse_ref HEAD)'?" || {
-		echo "Merge skipped! To merge the new commit manually run:"
-		echo
-		echo "  git merge $(git rev-parse --short $new_commit)"
-		echo
+		say "Merge skipped! To merge the new commit manually run:"
+		say
+		say "  git merge $(git rev-parse --short $new_commit)"
+		say
 		exit
 	}
 
 	m_msg="Merge imported tree from $(ref_desc "$tpl_ref")"
-	echo "Merging..."
+	say "Merging..."
 	git merge --no-ff --edit --log=1 -m "$m_msg" $new_commit \
 		|| exit $?
-	echo "Synchronization complete!"
+	say "Synchronization complete!"
 }
 
 main "$@"

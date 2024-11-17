@@ -23,12 +23,12 @@ first_commit_with_ancestor_tree () {
 		| cut -d ' ' -f 2
 }
 
-parse_ref () {
+resolve_ref_short () {
 	local ref="$1"
 	git symbolic-ref --short --quiet "$ref" || git rev-parse --short "$ref"
 }
 
-ref_desc () {
+get_ref_desc () {
 	local ref="$1"
 	if [ "$ref" = "FETCH_HEAD" ]; then
 		git fmt-merge-msg -F $(git rev-parse --git-path FETCH_HEAD) | sed 's/^Merge //'
@@ -85,7 +85,7 @@ main () {
 
 	require_clean_work_tree "synchronize"
 
-	head_ref=$(parse_ref HEAD)
+	head_ref=$(resolve_ref_short HEAD)
 	tpl_ref=$(git rev-parse --verify --symbolic --quiet "$1^{commit}") || die "fatal: bad revision '$1'"
 	tpl_ref=${tpl_ref%'^{commit}'}
 
@@ -111,7 +111,7 @@ main () {
 	# stdin/stdout. Use FD 4 to save stdout for inside the subshell.
 	{ c_msg=$(
 		edit_msg "$(printf '%s\n' \
-				"Import tree from $(ref_desc "$tpl_ref")" \
+				"Import tree from $(get_ref_desc "$tpl_ref")" \
 				"" \
 				"  Latest commit: $(git log --oneline --format=reference -n 1 "$tpl_ref")" \
 				"" \
@@ -126,7 +126,7 @@ main () {
 
 	#----- merge created commit into HEAD -----
 
-	confirm "Merge synchronization commit $(git rev-parse --short $new_commit) into '$(parse_ref HEAD)'?" || {
+	confirm "Merge synchronization commit $(git rev-parse --short $new_commit) into '$(resolve_ref_short HEAD)'?" || {
 		say "Merge skipped! To merge the new commit manually run:"
 		say
 		say "  git merge $(git rev-parse --short $new_commit)"
@@ -134,7 +134,7 @@ main () {
 		exit
 	}
 
-	m_msg="Merge imported tree from $(ref_desc "$tpl_ref")"
+	m_msg="Merge imported tree from $(get_ref_desc "$tpl_ref")"
 	say "Merging..."
 	git merge --no-ff --edit --log=1 -m "$m_msg" $new_commit \
 		|| exit $?

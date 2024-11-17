@@ -19,7 +19,9 @@ sync	imports a commit's tree object onto the first ancestor commit
 		merges the new commit into the current branch
 --
 h,help show the help
+no-edit skip editing message before commit
 q,quiet suppress unnecessary output
+y,yes don't ask for confirmation before performing actions
 "
 
 first_commit_with_ancestor_tree () {
@@ -58,6 +60,7 @@ edit_msg () {
 }
 
 confirm () {
+	[ -z "$skip_confirm" ] || return 0
 	local key
 	read -p "${1:-"Continue?"} (y/N) " key
 	[ "$key" = "Y" -o "$key" = "y" ]
@@ -70,8 +73,16 @@ main () {
 	. "$(git --exec-path)/git-sh-setup"
 	require_work_tree_exists
 
+	skip_confirm=
+	skip_edit=
 	while [ $# -gt 0 ]; do
 		case "$1" in
+			-y)
+				skip_confirm=1
+				;;
+			--no-edit)
+				skip_edit=1
+				;;
 			-q)
 				GIT_QUIET=1
 				;;
@@ -131,17 +142,17 @@ main () {
 		confirm "Import tree as new descendant of commit $(git rev-parse --short $last_import_commit)?" || exit 0
 	fi
 
-	# edit_msg outputs message on FD 3, but needs to be able to use
-	# stdin/stdout. Use FD 4 to save stdout for inside the subshell.
-	{ c_msg=$(
-		edit_msg "$(printf '%s\n' \
-				"Import tree object from $(get_ref_desc "$ext_ref")" \
-				"" \
-				"  Latest commit: $(git log --oneline --format=reference -n 1 "$ext_ref")" \
-				"" \
-			)" \
-			3>&1 >&4
-	); } 4>&1
+	c_msg="$(printf '%s\n' \
+		"Import tree object from $(get_ref_desc "$ext_ref")" \
+		"" \
+		"  Latest commit: $(git log --oneline --format=reference -n 1 "$ext_ref")" \
+		"" \
+	)"
+	if [ -z "$skip_edit" ]; then
+		# edit_msg outputs message on FD 3, but needs to be able to use
+		# stdin/stdout. Use FD 4 to save stdout for inside the subshell.
+		{ c_msg=$(edit_msg "$c_msg" 3>&1 >&4 ); } 4>&1
+	fi
 	[ -n "$c_msg" ] || die "Aborting commit due to empty commit message."
 
 	new_commit=$(git commit-tree ${last_import_commit:+-p $last_import_commit} -m "$c_msg" "${ext_ref}^{tree}")
@@ -161,7 +172,13 @@ main () {
 	m_msg="Merge external tree import from $(get_ref_desc "$ext_ref")"
 	say "Merging..."
 	set_reflog_action "${self#git }: ${cmd} tree $(git rev-parse "$new_commit^{tree}")"
-	git merge --no-ff $(test "$cmd" = 'init' && echo --allow-unrelated-histories) --edit --log=1 -m "$m_msg" $new_commit \
+	git merge \
+		--no-ff \
+		$(test "$cmd" = 'init' && echo --allow-unrelated-histories) \
+		$(test -z "$skip_edit" && echo --edit) \
+		--log=1 \
+		-m "$m_msg" \
+		$new_commit \
 		|| exit $?
 
 	say "${cmd} complete!"

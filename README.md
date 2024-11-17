@@ -1,3 +1,12 @@
+# Installation
+
+```sh
+install -m 755 git-ext-tree.sh /usr/local/bin/git-ext-tree
+```
+
+# Usage
+
+```
 usage: git ext-tree init [repository] <ref>
    or: git ext-tree sync [repository] <ref>
 
@@ -15,4 +24,4 @@ usage: git ext-tree init [repository] <ref>
     --no-edit             skip editing message before commit
     -q, --quiet           suppress unnecessary output
     -y, --yes             don't ask for confirmation before performing actions
-
+```

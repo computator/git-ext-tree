@@ -13,6 +13,7 @@ git fetch <repository> <ref>
 ${self} FETCH_HEAD
 --
 h,help show the help
+q,quiet suppress unnecessary output
 "
 
 first_commit_with_ancestor_tree () {
@@ -63,7 +64,21 @@ main () {
 	. "$(git --exec-path)/git-sh-setup"
 	require_work_tree_exists
 
-	test "$1" = "--" && shift || usage
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			-q)
+				GIT_QUIET=1
+				;;
+			--)
+				shift
+				break
+				;;
+			*)
+				usage
+				;;
+		esac
+		shift
+	done
 	test $# -eq 1 || usage
 
 	#----- parse refs -----

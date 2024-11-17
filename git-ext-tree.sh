@@ -53,7 +53,7 @@ edit_msg () {
 		trap '[ -n "$tfile" ] && rm "$tfile"' EXIT
 		tfile=$(mktemp -p "$(git rev-parse --git-dir)")
 		echo "$msg" > "$tfile"
-		$(git var GIT_EDITOR) "$tfile"
+		git_editor "$tfile"
 		# output final message to FD 3
 		git stripspace -s < "$tfile" >&3
 	)

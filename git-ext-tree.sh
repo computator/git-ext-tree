@@ -2,14 +2,13 @@
 set -e
 
 self=$(basename -- "$0" | sed 's/-/ /')
-self_sp=$(printf "%${#self}s" '')
 
 OPTIONS_SPEC="\
 ${self} init [repository] <ref>
 ${self} sync [repository] <ref>
 
 ${self} creates point-in-time tree object imports from an
-${self_sp} external tree or repository
+external tree or repository.
 
 Commands:
 init	creates an inital import of a commit's tree object and merges

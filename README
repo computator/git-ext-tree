@@ -2,7 +2,7 @@ usage: git ext-tree init [repository] <ref>
    or: git ext-tree sync [repository] <ref>
 
     git ext-tree creates point-in-time tree object imports from an
-                    external tree or repository
+    external tree or repository.
 
     Commands:
     init	creates an inital import of a commit's tree object and merges

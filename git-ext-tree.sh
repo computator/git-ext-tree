@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 self=$(basename -- "$0" | sed 's/-/ /')
@@ -25,9 +25,11 @@ y,yes don't ask for confirmation before performing actions
 
 first_commit_with_ancestor_tree () {
 	local ref="$1"
-	git rev-list --no-commit-header --format=%T "$ref" \
-		| grep -Ff - -m 1 <(git rev-list --no-commit-header --format='%T %H' HEAD) \
-		| cut -d ' ' -f 2
+	git rev-list --no-commit-header --format=%T "$ref" | {
+		git rev-list --no-commit-header --format='%T %H' HEAD \
+			| grep -Ff /dev/fd/3 -m 1 \
+			| cut -d ' ' -f 2
+	} 3<&0 0<&-
 }
 
 resolve_ref_short () {
@@ -150,7 +152,7 @@ main () {
 	if [ -z "$skip_edit" ]; then
 		# edit_msg outputs message on FD 3, but needs to be able to use
 		# stdin/stdout. Use FD 4 to save stdout for inside the subshell.
-		{ c_msg=$(edit_msg "$c_msg" 3>&1 >&4 ); } 4>&1
+		{ c_msg=$(edit_msg "$c_msg" 3>&1 >&4 4>&- ); } 4>&1
 	fi
 	[ -n "$c_msg" ] || die "Aborting commit due to empty commit message."
 

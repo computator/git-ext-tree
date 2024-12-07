@@ -18,7 +18,7 @@ sync	imports a commit's tree object onto the first ancestor commit
 		merges the new commit into the current branch
 --
 h,help show the help
-no-edit skip editing message before commit
+c,no-edit skip editing message before commit
 q,quiet suppress unnecessary output
 y,yes don't ask for confirmation before performing actions
 "
@@ -79,7 +79,7 @@ main () {
 			-y)
 				skip_confirm=1
 				;;
-			--no-edit)
+			-c)
 				skip_edit=1
 				;;
 			-q)

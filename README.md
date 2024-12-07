@@ -21,7 +21,7 @@ usage: git ext-tree init [repository] <ref>
     		merges the new commit into the current branch
 
     -h, --help            show the help
-    --no-edit             skip editing message before commit
+    -c, --no-edit         skip editing message before commit
     -q, --quiet           suppress unnecessary output
     -y, --yes             don't ask for confirmation before performing actions
 ```

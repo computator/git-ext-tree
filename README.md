@@ -1,7 +1,12 @@
 # Installation
 
 ```sh
-install -m 755 git-ext-tree.sh /usr/local/bin/git-ext-tree
+sudo install -m 755 git-ext-tree.sh /usr/local/bin/git-ext-tree
+```
+or
+```sh
+mkdir -p ~/bin
+install -m 755 git-ext-tree.sh ~/bin/git-ext-tree
 ```
 
 # Usage

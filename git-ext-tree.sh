@@ -67,6 +67,11 @@ confirm () {
 	[ "$key" = "Y" -o "$key" = "y" ]
 }
 
+log () {
+	test -n "$out_quiet" || return 0
+	echo "$@"
+}
+
 main () {
 	#----- parse params -----
 
@@ -76,6 +81,7 @@ main () {
 
 	skip_confirm=
 	skip_edit=
+	out_quiet=
 	while [ $# -gt 0 ]; do
 		case "$1" in
 			-y)
@@ -85,7 +91,7 @@ main () {
 				skip_edit=1
 				;;
 			-q)
-				GIT_QUIET=1
+				out_quiet=1
 				;;
 			--)
 				shift
@@ -127,10 +133,10 @@ main () {
 				git log --oneline --decorate $(test -t 3 && echo --color) -n 1 $last_import_commit
 			)"; } 3>&1
 		elif [ "$(git rev-parse "$last_import_commit^{tree}")" = "$(git rev-parse "$ext_ref^{tree}")" ]; then
-			say "'$head_ref' already up to date with '$ext_ref', no new changes to synchronize"
+			log "'$head_ref' already up to date with '$ext_ref', no new changes to synchronize"
 			exit
 		fi
-		{ say "Last synchronization commit to '$head_ref':  $(
+		{ log "Last synchronization commit to '$head_ref':  $(
 			git log --oneline --decorate $(test -t 3 && echo --color) -n 1 $last_import_commit
 		)"; } 3>&1
 	elif [ "$cmd" = 'sync' ]; then
@@ -158,20 +164,20 @@ main () {
 
 	new_commit=$(git commit-tree ${last_import_commit:+-p $last_import_commit} -m "$c_msg" "${ext_ref}^{tree}")
 	[ $? -eq 0 ] || die "fatal: failed to create import commit${new_commit:+": $new_commit"}"
-	say "Successfully imported tree as new commit $new_commit"
+	log "Successfully imported tree as new commit $new_commit"
 
 	#----- merge created commit into HEAD -----
 
 	confirm "Merge imported commit $(git rev-parse --short $new_commit) into '$(resolve_ref_short HEAD)'?" || {
-		say "Merge skipped! To merge the new commit manually run:"
-		say
-		say "  git merge $(git rev-parse --short $new_commit)"
-		say
+		log "Merge skipped! To merge the new commit manually run:"
+		log
+		log "  git merge $(git rev-parse --short $new_commit)"
+		log
 		exit
 	}
 
 	m_msg="Merge external tree import from $(get_ref_desc "$ext_ref")"
-	say "Merging..."
+	log "Merging..."
 	set_reflog_action "${self#git }: ${cmd} tree $(git rev-parse "$new_commit^{tree}")"
 	git merge \
 		--no-ff \
@@ -182,7 +188,7 @@ main () {
 		$new_commit \
 		|| exit $?
 
-	say "${cmd} complete!"
+	log "${cmd} complete!"
 }
 
 main "$@"

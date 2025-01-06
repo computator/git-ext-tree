@@ -176,7 +176,7 @@ main () {
 		exit
 	}
 
-	m_msg="Merge external tree import from $(get_ref_desc "$ext_ref")"
+	m_msg="Merge ext-tree import from $(get_ref_desc "$ext_ref")"
 	log "Merging..."
 	set_reflog_action "${self#git }: ${cmd} tree $(git rev-parse "$new_commit^{tree}")"
 	git merge \
